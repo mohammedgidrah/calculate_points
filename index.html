@@ -27,15 +27,14 @@
     <div class="header-title">🏆 لوحة النقاط</div>
     <div class="header-actions">
       <button class="btn btn-primary" onclick="openAddModal()">➕ إضافة عضو</button>
-      <!-- <button class="btn btn-outline" onclick="exportPDF()">📄 تصدير PDF</button> -->
-      <!-- <button class="btn btn-outline" onclick="importJSON()">📂 استيراد</button> -->
+      <button class="btn btn-outline" onclick="exportPDF()">📄 تصدير PDF</button>
+      <button class="btn btn-outline" onclick="importJSON()">📂 استيراد</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
       <button class="btn btn-outline" onclick="logout()" style="padding:9px 12px">🚪</button>
     </div>
   </header>
 
   <main>
-    <!-- STATS -->
     <div class="stats-grid">
       <div class="stat-card blue">
         <div class="stat-icon">👥</div>
@@ -59,7 +58,6 @@
       </div>
     </div>
 
-    <!-- CONTROLS -->
     <div class="controls">
       <input type="text" class="search-input" placeholder="🔍 بحث بالاسم..." oninput="renderTable()" id="search">
       <select class="search-input" style="max-width:160px" onchange="renderTable()" id="filter-rank">
@@ -77,7 +75,6 @@
       </select>
     </div>
 
-    <!-- TABLE -->
     <div class="table-wrap">
       <table>
         <thead>
@@ -173,11 +170,9 @@
 <div id="toast"></div>
 
 <script>
-// ===== CONFIG =====
-const PASSWORD = '@Hh123456789'; // ← غير كلمة المرور هنا
+const PASSWORD = 'Hh123456789@';
 const STORAGE_KEY = 'dashboard_data';
 
-// ===== POINTS CONFIG =====
 const ACTIONS = {
   '3-4-5': [
     { label: 'عمل مقابلة', pts: 2 },
@@ -199,12 +194,11 @@ const ACTIONS = {
   ]
 };
 
-// ===== STATE =====
 let members = [];
 let editingId = null;
 let pointsTargetId = null;
+let deleteTargetId = null;
 
-// ===== AUTH =====
 function doLogin() {
   const pw = document.getElementById('pw-input').value;
   if (pw === PASSWORD) {
@@ -225,47 +219,36 @@ function logout() {
   document.getElementById('login-err').style.display = 'none';
 }
 
-// ===== DATA =====
 function loadData() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try { members = JSON.parse(raw); } catch { members = []; }
-  }
+  if (raw) { try { members = JSON.parse(raw); } catch { members = []; } }
   renderTable();
   updateStats();
 }
 
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(members)); }
 
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
-// ===== STATS =====
 function updateStats() {
   const total = members.length;
   const totalPts = members.reduce((s, m) => s + (m.points || 0), 0);
   const avg = total ? Math.round(totalPts / total) : 0;
   const top = total ? members.reduce((a, b) => (b.points > a.points ? b : a)).name : '—';
-
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-points').textContent = totalPts;
   document.getElementById('stat-avg').textContent = avg;
   document.getElementById('stat-top').textContent = total ? top.split(' ')[0] : '—';
 }
 
-// ===== TABLE =====
 function renderTable() {
   const search = document.getElementById('search').value.toLowerCase();
   const filterRank = document.getElementById('filter-rank').value;
   const sortBy = document.getElementById('sort-by').value;
 
   let filtered = members.filter(m => {
-    const matchName = m.name.toLowerCase().includes(search);
-    const matchRank = filterRank ? String(m.rank) === filterRank : true;
-    return matchName && matchRank;
+    return m.name.toLowerCase().includes(search) &&
+      (filterRank ? String(m.rank) === filterRank : true);
   });
 
   if (sortBy === 'points-desc') filtered.sort((a, b) => b.points - a.points);
@@ -297,7 +280,6 @@ function renderTable() {
       </tr>
     `).join('');
   }
-
   updateStats();
 }
 
@@ -305,7 +287,6 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ===== MEMBER CRUD =====
 function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = '➕ إضافة عضو جديد';
@@ -330,25 +311,17 @@ function saveMember() {
   const name = document.getElementById('m-name').value.trim();
   const rank = parseInt(document.getElementById('m-rank').value);
   const points = parseInt(document.getElementById('m-points').value) || 0;
-
   if (!name) { showToast('أدخل اسم العضو', 'error'); return; }
-
   if (editingId) {
     const m = members.find(x => x.id === editingId);
     m.name = name; m.rank = rank; m.points = points;
-    m.lastUpdate = today();
     showToast('تم التعديل بنجاح ✅', 'success');
   } else {
-    members.push({ id: generateId(), name, rank, points, history: [], lastUpdate: today() });
+    members.push({ id: generateId(), name, rank, points, history: [] });
     showToast('تمت الإضافة بنجاح ✅', 'success');
   }
-
-  saveData();
-  renderTable();
-  closeModal('member-modal');
+  saveData(); renderTable(); closeModal('member-modal');
 }
-
-let deleteTargetId = null;
 
 function deleteMember(id) {
   const m = members.find(x => x.id === id);
@@ -361,39 +334,31 @@ function deleteMember(id) {
 function confirmDelete() {
   members = members.filter(m => m.id !== deleteTargetId);
   deleteTargetId = null;
-  saveData();
-  renderTable();
-  closeModal('delete-modal');
+  saveData(); renderTable(); closeModal('delete-modal');
   showToast('تم حذف العضو 🗑️', 'error');
 }
 
-// ===== POINTS =====
 function openPointsModal(id) {
   const m = members.find(x => x.id === id);
   if (!m) return;
   pointsTargetId = id;
   document.getElementById('pts-modal-title').textContent = `⭐ إضافة نقاط — ${m.name}`;
-
   const rankGroup = m.rank === 6 ? '6' : '3-4-5';
   document.getElementById('pts-actions-label').textContent =
-    m.rank === 6 ? 'أنشطة الرتبة 6' : `أنشطة الرتب 3-4-5`;
-
+    m.rank === 6 ? 'أنشطة الرتبة 6' : 'أنشطة الرتب 3-4-5';
   document.getElementById('action-list').innerHTML = ACTIONS[rankGroup].map(a => `
     <div class="action-item" onclick="quickAddPoints(${a.pts}, '${a.label}')">
       <span>${a.label}</span>
       <span class="action-pts">+${a.pts}</span>
     </div>
   `).join('');
-
   document.getElementById('custom-pts').value = '';
   document.getElementById('pts-note').value = '';
   renderHistory(m);
   openModal('points-modal');
 }
 
-function quickAddPoints(pts, label) {
-  addPoints(pts, label);
-}
+function quickAddPoints(pts, label) { addPoints(pts, label); }
 
 function addCustomPoints() {
   const pts = parseInt(document.getElementById('custom-pts').value) || 0;
@@ -408,13 +373,10 @@ function addPoints(pts, label) {
   const m = members.find(x => x.id === pointsTargetId);
   if (!m) return;
   m.points += pts;
-  m.lastUpdate = today();
   if (!m.history) m.history = [];
   m.history.unshift({ label, pts, date: today() });
   if (m.history.length > 50) m.history = m.history.slice(0, 50);
-  saveData();
-  renderTable();
-  renderHistory(m);
+  saveData(); renderTable(); renderHistory(m);
   showToast(`+${pts} نقطة — ${label}`, 'success');
 }
 
@@ -433,7 +395,6 @@ function renderHistory(m) {
   `).join('');
 }
 
-// ===== ARABIC TEXT HELPER (canvas-based image) =====
 function arabicTextImage(text, fontSize, color, bold) {
   const canvas = document.createElement('canvas');
   const dpr = 3;
@@ -452,11 +413,9 @@ function arabicTextImage(text, fontSize, color, bold) {
   return { dataUrl: canvas.toDataURL('image/png'), w: w / dpr, h: canvas.height / dpr };
 }
 
-// ===== EXPORT PDF =====
 async function exportPDF() {
   if (members.length === 0) { showToast('لا يوجد أعضاء للتصدير', 'error'); return; }
   showToast('جاري إنشاء PDF...', 'success');
-
   if (!window.jspdf) {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
@@ -465,117 +424,62 @@ async function exportPDF() {
       document.head.appendChild(s);
     });
   }
-
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const sorted = [...members].sort((a, b) => b.points - a.points);
 
-  const drawPageBg = () => {
-    doc.setFillColor(10, 15, 30);
-    doc.rect(0, 0, pageW, pageH, 'F');
-  };
-
+  const drawPageBg = () => { doc.setFillColor(10,15,30); doc.rect(0,0,pageW,pageH,'F'); };
   drawPageBg();
 
-  // Header bar
-  doc.setFillColor(17, 24, 39);
-  doc.rect(0, 0, pageW, 38, 'F');
-  doc.setFillColor(0, 212, 255);
-  doc.rect(0, 0, pageW, 2, 'F');
+  doc.setFillColor(17,24,39); doc.rect(0,0,pageW,38,'F');
+  doc.setFillColor(0,212,255); doc.rect(0,0,pageW,2,'F');
 
-  // Title (Arabic image)
   const titleImg = arabicTextImage('لوحة النقاط', 14, '#00d4ff', true);
-  doc.addImage(titleImg.dataUrl, 'PNG', (pageW - titleImg.w) / 2, 8, titleImg.w, titleImg.h);
+  doc.addImage(titleImg.dataUrl,'PNG',(pageW-titleImg.w)/2,8,titleImg.w,titleImg.h);
 
-  // Stats line
-  const totalPts = members.reduce((s, m) => s + m.points, 0);
+  const totalPts = members.reduce((s,m)=>s+m.points,0);
   const statsText = `${today()}  |  عدد الأعضاء: ${members.length}  |  مجموع النقاط: ${totalPts}`;
-  const statsImg = arabicTextImage(statsText, 7, '#64748b', false);
-  doc.addImage(statsImg.dataUrl, 'PNG', (pageW - statsImg.w) / 2, 24, statsImg.w, statsImg.h);
+  const statsImg = arabicTextImage(statsText,7,'#64748b',false);
+  doc.addImage(statsImg.dataUrl,'PNG',(pageW-statsImg.w)/2,24,statsImg.w,statsImg.h);
 
-  // ---- TABLE HEADER ----
   let y = 48;
-  // cols: right-to-left layout (PDF coords left=0)
-  // columns: # | الرتبة | الاسم | النقاط
-  const colNum = 14;
-  const colRank = 30;
-  const colName = 110; // right edge of name
-  const colPts = 155;  // center of points badge
+  const colNum=14, colRank=30, colName=110, colPts=155;
 
-  doc.setFillColor(26, 34, 53);
-  doc.rect(10, y - 6, pageW - 20, 10, 'F');
+  doc.setFillColor(26,34,53); doc.rect(10,y-6,pageW-20,10,'F');
 
-  // Header labels as Arabic images
-  const headers = [
-    { text: '#', x: colNum, center: true },
-    { text: 'الرتبة', x: colRank + 8, center: true },
-    { text: 'الاسم', x: colName, right: true },
-    { text: 'النقاط', x: colPts, center: true },
-  ];
-
-  for (const h of headers) {
-    const img = arabicTextImage(h.text, 7, '#64748b', true);
-    const xPos = h.right ? h.x - img.w : h.center ? h.x - img.w / 2 : h.x;
-    doc.addImage(img.dataUrl, 'PNG', xPos, y - 5, img.w, img.h);
+  for (const h of [{text:'#',x:colNum,center:true},{text:'الرتبة',x:colRank+8,center:true},{text:'الاسم',x:colName,right:true},{text:'النقاط',x:colPts,center:true}]) {
+    const img = arabicTextImage(h.text,7,'#64748b',true);
+    const xPos = h.right ? h.x-img.w : h.center ? h.x-img.w/2 : h.x;
+    doc.addImage(img.dataUrl,'PNG',xPos,y-5,img.w,img.h);
   }
-
   y += 9;
 
-  // ---- ROWS ----
-  const rankColors = { 3: [96,165,250], 4: [52,211,153], 5: [251,191,36], 6: [192,132,252] };
-
-  for (let i = 0; i < sorted.length; i++) {
+  const rankColors = {3:[96,165,250],4:[52,211,153],5:[251,191,36],6:[192,132,252]};
+  for (let i=0; i<sorted.length; i++) {
     const m = sorted[i];
-
-    if (y > pageH - 20) {
-      doc.addPage();
-      drawPageBg();
-      y = 20;
-    }
-
-    if (i % 2 === 0) {
-      doc.setFillColor(17, 24, 39);
-      doc.rect(10, y - 5, pageW - 20, 10, 'F');
-    }
-
-    const rc = rankColors[m.rank] || [100,116,139];
-
-    // Row number
-    const numImg = arabicTextImage(String(i + 1), 7.5, '#64748b', false);
-    doc.addImage(numImg.dataUrl, 'PNG', colNum, y - 4, numImg.w, numImg.h);
-
-    // Rank badge
-    doc.setFillColor(...rc);
-    doc.roundedRect(colRank, y - 4.5, 12, 7, 1.5, 1.5, 'F');
-    const rankImg = arabicTextImage(`رتبة ${m.rank}`, 6, '#0a0f1e', true);
-    doc.addImage(rankImg.dataUrl, 'PNG', colRank + 6 - rankImg.w / 2, y - 4, rankImg.w, rankImg.h);
-
-    // Name (Arabic image, right-aligned)
-    const nameImg = arabicTextImage(m.name, 9, '#e2e8f0', true);
-    doc.addImage(nameImg.dataUrl, 'PNG', colName - nameImg.w, y - 5, nameImg.w, nameImg.h);
-
-    // Points badge
-    doc.setFillColor(0, 40, 55);
-    doc.roundedRect(colPts - 14, y - 4.5, 28, 7, 2, 2, 'F');
-    const ptsImg = arabicTextImage(`${m.points} نقطة`, 7.5, '#00d4ff', true);
-    doc.addImage(ptsImg.dataUrl, 'PNG', colPts - ptsImg.w / 2, y - 4, ptsImg.w, ptsImg.h);
-
+    if (y > pageH-20) { doc.addPage(); drawPageBg(); y=20; }
+    if (i%2===0) { doc.setFillColor(17,24,39); doc.rect(10,y-5,pageW-20,10,'F'); }
+    const rc = rankColors[m.rank]||[100,116,139];
+    const numImg = arabicTextImage(String(i+1),7.5,'#64748b',false);
+    doc.addImage(numImg.dataUrl,'PNG',colNum,y-4,numImg.w,numImg.h);
+    doc.setFillColor(...rc); doc.roundedRect(colRank,y-4.5,12,7,1.5,1.5,'F');
+    const rankImg = arabicTextImage(`رتبة ${m.rank}`,6,'#0a0f1e',true);
+    doc.addImage(rankImg.dataUrl,'PNG',colRank+6-rankImg.w/2,y-4,rankImg.w,rankImg.h);
+    const nameImg = arabicTextImage(m.name,9,'#e2e8f0',true);
+    doc.addImage(nameImg.dataUrl,'PNG',colName-nameImg.w,y-5,nameImg.w,nameImg.h);
+    doc.setFillColor(0,40,55); doc.roundedRect(colPts-14,y-4.5,28,7,2,2,'F');
+    const ptsImg = arabicTextImage(`${m.points} نقطة`,7.5,'#00d4ff',true);
+    doc.addImage(ptsImg.dataUrl,'PNG',colPts-ptsImg.w/2,y-4,ptsImg.w,ptsImg.h);
     y += 11;
   }
 
-  // Bottom accent
-  doc.setFillColor(124, 58, 237);
-  doc.rect(0, pageH - 2, pageW, 2, 'F');
+  doc.setFillColor(124,58,237); doc.rect(0,pageH-2,pageW,2,'F');
 
-  // Filename: "اسم (نقاط) - اسم (نقاط)..."
-  const nameParts = sorted.map(m => `${m.name} (${m.points})`);
-  let fname = nameParts.length <= 4
-    ? nameParts.join(' - ')
-    : nameParts.slice(0, 3).join(' - ') + ` +${nameParts.length - 3}`;
-  fname = fname.replace(/[/\\?%*:|"<>]/g, '').trim();
-
+  const nameParts = sorted.map(m=>`${m.name} (${m.points})`);
+  let fname = nameParts.length<=4 ? nameParts.join(' - ') : nameParts.slice(0,3).join(' - ')+` +${nameParts.length-3}`;
+  fname = fname.replace(/[/\\?%*:|"<>]/g,'').trim();
   doc.save(`${fname}.pdf`);
   showToast('تم تصدير PDF بنجاح 📄', 'success');
 }
@@ -590,9 +494,7 @@ function handleImport(e) {
     try {
       const data = JSON.parse(ev.target.result);
       if (Array.isArray(data)) {
-        members = data;
-        saveData();
-        renderTable();
+        members = data; saveData(); renderTable();
         showToast(`تم استيراد ${data.length} عضو ✅`, 'success');
       } else throw new Error();
     } catch { showToast('ملف غير صالح ❌', 'error'); }
@@ -601,34 +503,26 @@ function handleImport(e) {
   e.target.value = '';
 }
 
-// ===== MODAL HELPERS =====
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 document.querySelectorAll('.modal-bg').forEach(bg => {
-  bg.addEventListener('click', e => {
-    if (e.target === bg) bg.classList.remove('open');
-  });
+  bg.addEventListener('click', e => { if (e.target===bg) bg.classList.remove('open'); });
 });
 
-// ===== TOAST =====
-function showToast(msg, type = 'success') {
+function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `show ${type}`;
-  setTimeout(() => t.className = '', 2500);
+  setTimeout(() => t.className='', 2500);
 }
 
-// ===== UTILS =====
 function today() {
-  return new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  return new Date().toLocaleDateString('ar-SA', {year:'numeric',month:'2-digit',day:'2-digit'});
 }
 
-// Allow Enter key on login
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
-  }
+  if (e.key==='Escape') document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
 });
 </script>
 </body>
